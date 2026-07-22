@@ -60,7 +60,7 @@ conda activate drug-target
 ### 3. Install Dependencies
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-full.txt
 ```
 
 ### 4. Download Data
@@ -82,6 +82,8 @@ python src/train.py --config configs/default.yaml
 ```bash
 streamlit run app/streamlit_app.py
 ```
+
+> **Live Demo:** The [deployed web app](https://marine9056-drug-target-predictor.hf.space) uses a lightweight showcase version. The full GNN model with RDKit and PyTorch runs locally via `streamlit run app/streamlit_app.py`.
 
 ## Project Structure
 
