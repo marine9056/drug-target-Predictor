@@ -1,6 +1,3 @@
-# Drug-Target Interaction Predictor
-# Streamlit Cloud deployment
-
 torch==2.1.0
 numpy>=1.24.0,<2.0
 pandas>=2.0.0
