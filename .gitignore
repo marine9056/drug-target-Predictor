@@ -39,7 +39,6 @@ data/splits/
 *.csv
 
 # Model Checkpoints
-models/checkpoints/
 models/final/
 
 # Outputs

@@ -1,15 +1,18 @@
-# Drug-Target Interaction Predictor
-# Install: pip install -r requirements.txt
+# Drug-Target Interaction Predictor - Streamlit Cloud
+# CPU-only torch to fit deployment size limits
 
-# === Core (required) ===
-torch>=2.1.0
-torch-geometric>=2.4.0
+# === Core ===
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.1.0+cpu
 numpy>=1.24.0,<2.0
 pandas>=2.0.0
 scipy>=1.10.0
 
 # === Chemistry ===
 rdkit-pypi>=2023.9.0
+
+# === GNN (install after torch) ===
+torch-geometric>=2.4.0
 
 # === Web App ===
 streamlit>=1.28.0
@@ -18,6 +21,3 @@ plotly>=5.15.0
 # === Config ===
 pyyaml>=6.0
 requests>=2.31.0
-
-# === Testing ===
-pytest>=7.4.0
