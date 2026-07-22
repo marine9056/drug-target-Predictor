@@ -46,7 +46,7 @@ Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split):
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/HaseebUrRehman/drug-target-predictor.git
+git clone https://github.com/marine9056/drug-target-predictor.git
 cd drug-target-predictor
 ```
 

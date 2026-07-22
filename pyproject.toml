@@ -33,7 +33,7 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/HaseebUrRehman/drug-target-predictor"
+Repository = "https://github.com/marine9056/drug-target-predictor"
 
 [tool.setuptools.packages.find]
 include = ["src*", "app*"]
