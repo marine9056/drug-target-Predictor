@@ -1,0 +1,79 @@
+# Drug-Target Interaction Predictor Configuration
+
+# Data Settings
+data:
+  dataset: "davis"  # Options: davis, bindingdb, kiba
+  max_drug_atoms: 100
+  max_protein_length: 1000
+  test_size: 0.2
+  val_size: 0.1
+  random_seed: 42
+
+# Model Architecture
+model:
+  drug_encoder:
+    gnn_type: "gat"  # Options: gcn, gat, gin
+    num_layers: 3
+    hidden_dim: 128
+    heads: 4
+    dropout: 0.2
+  
+  protein_encoder:
+    hidden_dim: 128
+    dropout: 0.2
+  
+  fusion:
+    type: "concat"  # Options: concat, attention, bilinear
+    hidden_dim: 256
+  
+  prediction_head:
+    hidden_dim: 128
+    num_layers: 2
+    dropout: 0.3
+    output_dim: 1
+
+# Training
+training:
+  batch_size: 256
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  patience: 10
+  scheduler: "plateau"  # Options: plateau, cosine, step
+  scheduler_factor: 0.5
+  scheduler_patience: 5
+  min_lr: 0.00001
+
+# Loss Function
+loss:
+  type: "mse"  # Options: mse, mae, huber
+
+# Evaluation
+evaluation:
+  metrics:
+    - "mse"
+    - "mae"
+    - "r2"
+    - "ci"
+    - "pearson"
+    - "spearman"
+
+# Experiment Tracking
+logging:
+  use_wandb: false
+  project_name: "drug-target-predictor"
+  experiment_name: "gat_v1"
+  log_interval: 50  # Log every N batches
+
+# Hardware
+hardware:
+  device: "auto"  # Options: auto, cuda, cpu
+  num_workers: 0
+  pin_memory: false
+
+# Paths
+paths:
+  data_dir: "data/raw"
+  model_dir: "models"
+  output_dir: "outputs"
+  checkpoint_dir: "models/checkpoints"

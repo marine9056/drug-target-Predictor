@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Environment Variables
+.env
+.env.local
+
+# Data (large files - downloaded by scripts)
+data/raw/
+data/processed/
+data/splits/
+*.csv
+
+# Model Checkpoints
+models/checkpoints/
+models/final/
+
+# Outputs
+outputs/
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# WandB
+wandb/
+
+# Distribution
+*.tar.gz
+*.whl
+
+# Debug/temp files
+*.txt
+!README.md
