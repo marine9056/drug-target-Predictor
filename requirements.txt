@@ -1,0 +1,24 @@
+# Core Deep Learning
+torch>=2.1.0
+torch-geometric>=2.4.0
+
+# Chemistry
+rdkit-pypi>=2023.9.0
+
+# Data Science
+numpy>=1.24.0,<2.0
+pandas>=2.0.0
+scipy>=1.10.0
+
+# Visualization
+plotly>=5.15.0
+
+# Web Application
+streamlit>=1.28.0
+
+# Utilities
+pyyaml>=6.0
+requests>=2.31.0
+
+# Testing
+pytest>=7.4.0

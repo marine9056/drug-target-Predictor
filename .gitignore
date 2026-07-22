@@ -66,4 +66,4 @@ wandb/
 
 # Debug/temp files
 *.txt
-!README.md
+!requirements.txt
