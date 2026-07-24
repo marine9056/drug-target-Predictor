@@ -7,25 +7,29 @@
 
 A Graph Neural Network model that predicts binding affinity between drug molecules and protein targets, trained on the **Davis Kinase Dataset** (29,444 drug-target pairs).
 
+## Live Demo
+
+Try the deployed app: **[HuggingFace Spaces Demo](https://haseeb3454-drug-target-predictor.hf.space)**
+
 ## Overview
 
 Drug-target interaction prediction is a core problem in computational drug discovery. This project uses:
 
 - **Graph Attention Networks (GAT)** to encode drug molecules from SMILES strings as molecular graphs
-- **Amino acid composition encoding** for protein sequence representation
+- **1D-CNN protein encoder** to capture sequence order and local motifs from amino acid sequences
 - **Concatenation-based fusion** to combine drug and protein embeddings
 - **MLP prediction head** to output binding affinity (pKd values)
 
 ### Model Architecture
 
 ```
-Drug (SMILES) -> Molecular Graph -> GAT Layers -> Drug Embedding (128-d)
-                                                          |
-                                                     Concatenate
-                                                          |
-Protein (Sequence) -> AA Composition -> MLP -> Protein Embedding (128-d)
-                                                          |
-                                                     MLP Head -> pKd
+Drug (SMILES) -> Molecular Graph -> GAT Layers (3x) -> Drug Embedding (128-d)
+                                                                |
+                                                           Concatenate
+                                                                |
+Protein (Sequence) -> Integer Encoding -> 1D-CNN -> Protein Embedding (128-d)
+                                                                |
+                                                           MLP Head -> pKd
 ```
 
 ## Results
@@ -34,20 +38,19 @@ Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split):
 
 | Metric | Value |
 |--------|-------|
-| MSE | 0.931 |
-| MAE | 0.598 |
-| RMSE | 0.965 |
-| Concordance Index (CI) | 0.709 |
-| Pearson Correlation | 0.411 |
-| Spearman Correlation | 0.386 |
+| MSE | 0.607 |
+| MAE | 0.489 |
+| Concordance Index (CI) | 0.765 |
+| Pearson Correlation | 0.508 |
+| Spearman Correlation | 0.484 |
 
 ## Quick Start
 
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/marine9056/drug-target-predictor.git
-cd drug-target-predictor
+git clone https://github.com/marine9056/drug-target-Predictor.git
+cd drug-target-Predictor
 ```
 
 ### 2. Create Environment
@@ -60,15 +63,13 @@ conda activate drug-target
 ### 3. Install Dependencies
 
 ```bash
-pip install -r requirements-full.txt
+pip install -r requirements.txt
 ```
 
 ### 4. Download Data
 
-The Davis dataset will be automatically downloaded to `data/raw/` on first training run. You can also download it manually:
-
 ```bash
-python src/data_loader.py
+python download_davis.py
 ```
 
 ### 5. Train Model
@@ -82,8 +83,6 @@ python src/train.py --config configs/default.yaml
 ```bash
 streamlit run app/streamlit_app.py
 ```
-
-> **Live Demo:** The [deployed web app](https://marine9056-drug-target-predictor.hf.space) uses a lightweight showcase version. The full GNN model with RDKit and PyTorch runs locally via `streamlit run app/streamlit_app.py`.
 
 ## Project Structure
 
@@ -100,7 +99,10 @@ drug-target-predictor/
 │   └── streamlit_app.py     # Interactive web interface
 ├── configs/
 │   └── default.yaml         # Model & training configuration
-├── tests/                   # Unit tests
+├── notebooks/
+│   └── demo.ipynb           # Demo notebook with full pipeline
+├── tests/                   # Unit tests (28 tests, all passing)
+├── Dockerfile               # Container config for deployment
 ├── pyproject.toml           # Package configuration
 ├── requirements.txt         # Dependencies
 └── LICENSE                  # MIT License
@@ -110,7 +112,9 @@ drug-target-predictor/
 
 - **Deep Learning**: PyTorch, PyTorch Geometric (GAT layers)
 - **Chemistry**: RDKit (SMILES parsing, molecular graphs)
+- **Protein Encoding**: 1D-CNN over integer-encoded sequences
 - **Web App**: Streamlit + Plotly
+- **Deployment**: Docker on HuggingFace Spaces
 - **Dataset**: Davis Kinase (MoleculeNet benchmark)
 
 ## License

@@ -50,20 +50,23 @@ class DavisDataset:
         
         Returns:
             DataFrame with columns: [drug_smiles, protein_sequence, kd_value]
+            
+        Raises:
+            RuntimeError: If all download methods fail.
         """
+        errors = []
+        
         # Method 1: Try DeepChem molnet (older versions)
         try:
             import deepchem as dc
             logger.info("Trying DeepChem molnet...")
             
-            # Try different function names based on version
             try:
                 tasks, datasets, transformers = dc.molnet.load_davis()
             except AttributeError:
                 try:
                     tasks, datasets, transformers = dc.data.load_davis()
                 except AttributeError:
-                    # Try using Featurizer
                     logger.info("Trying DeepChem Featurizer approach...")
                     davis_dataset = dc.data.DavisDataset()
                     df = pd.DataFrame({
@@ -82,6 +85,7 @@ class DavisDataset:
             return df
             
         except Exception as e:
+            errors.append(f"DeepChem: {e}")
             logger.warning(f"DeepChem method failed: {e}")
         
         # Method 2: Download CSV directly
@@ -114,14 +118,16 @@ class DavisDataset:
                             df.to_csv(output_path, index=False)
                             temp_path.unlink()
                             return df
-                except Exception:
+                except Exception as e:
+                    errors.append(f"CSV download ({url}): {e}")
                     continue
                     
         except ImportError:
-            logger.warning("requests not installed")
+            errors.append("requests library not installed")
         
-        # Method 3: Use curated sample data
-        logger.info("Using curated Davis-like sample data...")
+        # Method 3: Use curated sample data as last resort
+        logger.warning(f"All download methods failed: {errors}")
+        logger.info("Using curated Davis-like sample data as fallback...")
         return self._create_curated_data()
     
     def _convert_to_dataframe(self, train, valid, test) -> pd.DataFrame:

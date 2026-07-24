@@ -116,7 +116,8 @@ class DrugEncoder(nn.Module):
 
 class ProteinEncoder(nn.Module):
     """
-    Protein sequence encoder using composition + MLP.
+    Protein sequence encoder using 1D-CNN over integer-encoded sequence.
+    Preserves residue order and local motifs (unlike AA-composition).
     """
     
     def __init__(
@@ -128,26 +129,34 @@ class ProteinEncoder(nn.Module):
     ):
         super().__init__()
         
-        composition_dim = vocab_size
+        embed_dim = 64
         
-        self.encoder = nn.Sequential(
-            nn.Linear(composition_dim, 64),
+        self.embedding = nn.Embedding(vocab_size + 2, embed_dim, padding_idx=21)
+        
+        self.cnn = nn.Sequential(
+            nn.Conv1d(embed_dim, 64, kernel_size=5, padding=2),
+            nn.ReLU(),
+            nn.BatchNorm1d(64),
+            nn.MaxPool1d(2),
+            
+            nn.Conv1d(64, 128, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm1d(128),
+            nn.AdaptiveMaxPool1d(1),
+        )
+        
+        self.fc = nn.Sequential(
+            nn.Linear(128, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
-            nn.Linear(64, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout)
         )
         
     def forward(self, x):
-        composition = torch.zeros(x.size(0), 22, device=x.device)
-        for i in range(22):
-            composition[:, i] = (x == i).float().sum(dim=1)
-        
-        total = composition.sum(dim=1, keepdim=True) + 1e-8
-        composition = composition / total
-        
-        return self.encoder(composition)
+        embedded = self.embedding(x)
+        embedded = embedded.transpose(1, 2)
+        cnn_out = self.cnn(embedded)
+        cnn_out = cnn_out.squeeze(-1)
+        return self.fc(cnn_out)
 
 
 class DrugTargetPredictor(nn.Module):
