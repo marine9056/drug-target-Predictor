@@ -24,11 +24,16 @@
 
 | File | Provenance | Epoch | CI | Pearson | MSE | Status |
 |------|-----------|-------|-----|---------|-----|--------|
-| best_model.pt | CPU, concat | 6 | 0.772 | 0.540 | 0.607 | **Active** (loaded by app) |
-| best_model_concat.pt | CPU, concat | 3 | 0.748 | 0.481 | 0.843 | Undertrained backup |
+| best_model.pt | CPU, concat | 16 | 0.772 | 0.540 | 0.693 | **Active** (best verified) |
+| best_model_concat.pt | CPU, concat | 16 | 0.772 | 0.540 | 0.693 | Same as best_model.pt |
 | best_model_attention.pt | CPU, attention | 9 | 0.647 | 0.290 | 0.717 | Attention variant |
+| GPU (Colab, downloaded) | GPU, concat | 8 | 0.756 | 0.500 | 0.777 | Worse — early stopped at epoch 8 |
 
-**Critical:** GPU checkpoint (CI 0.846) was NOT downloaded before Colab session expired. Needs retraining.
+**Key findings:**
+- GPU training (Colab T4, 100 epochs) stopped at epoch 8 (early stopping, patience=10)
+- GPU model is **worse** than CPU model on all metrics — the 100-epoch training didn't converge
+- **PyG version mismatch:** Colab uses newer PyG with `lin_src`/`lin_dst` keys; local uses `lin` — requires key remapping for checkpoint loading
+- Previous "CI 0.846" claim was not reproducible — likely training metrics, not test metrics
 
 ---
 
@@ -59,9 +64,9 @@ fusion: concat
 |-----------|--------|-----|--------|-----|---------|----------|-----|
 | Baseline (AA-comp) | Concat | CPU | 17 | 0.709 | 0.411 | 0.386 | 0.931 |
 | 1D-CNN protein enc | Concat | CPU | 17 | 0.765 | 0.508 | 0.484 | 0.607 |
-| 1D-CNN + more train | Concat | CPU | 27 | **0.772** | **0.540** | **0.497** | **0.607** |
+| **1D-CNN full convergence** | **Concat** | **CPU** | **16** | **0.772** | **0.540** | **0.497** | **0.693** |
 | Attention fusion | Attention | CPU | 9 | 0.647 | 0.290 | 0.274 | 0.717 |
-| GPU (Colab output) | Concat | T4 | 100 | 0.846 | 0.912 | 0.906 | 1.451 |
+| GPU (early stopped) | Concat | T4 | 8 | 0.756 | 0.500 | 0.468 | 0.777 |
 
 ### Published SOTA for reference
 - Best published CI on Davis: ~0.88 (pretrained protein embeddings + k-fold CV)

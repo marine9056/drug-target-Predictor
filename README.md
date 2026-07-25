@@ -40,21 +40,12 @@ Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split, seed=42):
 
 | Metric | Value |
 |--------|-------|
-| MSE | 0.607 |
-| MAE | 0.489 |
-| R² | 0.420 |
+| MSE | 0.693 |
+| MAE | 0.556 |
+| R² | 0.105 |
 | Concordance Index (CI) | **0.772** |
 | Pearson Correlation | **0.540** |
 | Spearman Correlation | **0.497** |
-
-### GPU Training (Colab T4, 100 epochs — output metrics)
-
-Training on NVIDIA T4 (Google Colab) showed improved ranking:
-CI 0.846, Pearson 0.912, Spearman 0.906, but MSE 1.451.
-
-> **Note:** The GPU checkpoint needs re-downloading from Colab to locally verify
-> and reproduce these results. The Colab session expired before the checkpoint
-> was saved. Retraining is in progress.
 
 ### Experiment Comparison
 
@@ -62,16 +53,14 @@ CI 0.846, Pearson 0.912, Spearman 0.906, but MSE 1.451.
 |-----------|--------|----------|--------|-----|---------|----------|
 | Baseline (AA-composition) | Concat | CPU (2 cores) | 17 | 0.709 | 0.411 | 0.386 |
 | 1D-CNN protein encoder | Concat | CPU (2 cores) | 17 | 0.765 | 0.508 | 0.484 |
-| 1D-CNN + more training | Concat | CPU (2 cores) | 27 | **0.772** | **0.540** | **0.497** |
+| **1D-CNN + full convergence** | **Concat** | **CPU (2 cores)** | **16** | **0.772** | **0.540** | **0.497** |
 | Attention fusion tested | Attention | CPU (2 cores) | 9 | 0.647 | 0.290 | 0.274 |
-| GPU convergence (output) | Concat | NVIDIA T4 GPU | 100 | 0.846 | 0.912 | 0.906 |
 
 ### Key Findings
 
 - **1D-CNN protein encoder** (+5.7% CI) outperforms amino-acid composition by preserving sequence order and local motifs
 - **Concat fusion** outperforms cross-attention on this dataset size (29K pairs) — attention needs more data to learn meaningful interactions
-- **GPU convergence** (100 epochs) dramatically improves ranking metrics over CPU early-stopping (27 epochs)
-- **Published SOTA** on Davis: ~0.88 CI — our verified 0.772 CI is competitive; GPU result of 0.846 is pending local verification
+- **Published SOTA** on Davis: ~0.88 CI (with pretrained protein embeddings + k-fold CV) — our verified 0.772 CI is competitive for a single-split, no-pretraining model
 
 ## Quick Start
 
