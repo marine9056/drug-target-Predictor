@@ -34,54 +34,36 @@ Protein (Sequence) -> Integer Encoding -> 1D-CNN -> Protein Embedding (128-d)
 
 ## Results
 
-Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split):
+Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split, GPU-accelerated):
 
 | Metric | Value |
 |--------|-------|
-| MSE | 0.607 |
-| MAE | 0.489 |
-| Concordance Index (CI) | 0.765 |
-| Pearson Correlation | 0.508 |
-| Spearman Correlation | 0.484 |
+| MSE | 1.451 |
+| MAE | 0.954 |
+| R² | 0.548 |
+| Concordance Index (CI) | **0.846** |
+| Pearson Correlation | **0.912** |
+| Spearman Correlation | **0.906** |
 
 ## Quick Start
 
-### 1. Clone Repository
+### Option A: Use Pre-trained Model (recommended)
 
 ```bash
 git clone https://github.com/marine9056/drug-target-Predictor.git
 cd drug-target-Predictor
-```
-
-### 2. Create Environment
-
-```bash
-conda create -n drug-target python=3.10
-conda activate drug-target
-```
-
-### 3. Install Dependencies
-
-```bash
 pip install -r requirements.txt
-```
-
-### 4. Download Data
-
-```bash
-python download_davis.py
-```
-
-### 5. Train Model
-
-```bash
-python src/train.py --config configs/default.yaml
-```
-
-### 6. Run Web App
-
-```bash
 streamlit run app/streamlit_app.py
+```
+
+### Option B: Train from Scratch
+
+```bash
+# CPU (slow, ~6 hrs)
+python src/train.py --config configs/default.yaml
+
+# GPU via Google Colab (fast, ~15 min)
+# Upload notebooks/kaggle_train.ipynb to Colab with T4 GPU enabled
 ```
 
 ## Project Structure
