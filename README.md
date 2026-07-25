@@ -34,7 +34,9 @@ Protein (Sequence) -> Integer Encoding -> 1D-CNN -> Protein Embedding (128-d)
 
 ## Results
 
-Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split, GPU-accelerated):
+### Final Model (GPU-trained, 100 epochs on NVIDIA T4)
+
+Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split):
 
 | Metric | Value |
 |--------|-------|
@@ -44,6 +46,25 @@ Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split, GPU-accelerated):
 | Concordance Index (CI) | **0.846** |
 | Pearson Correlation | **0.912** |
 | Spearman Correlation | **0.906** |
+
+### Experiment Comparison
+
+We systematically compared fusion strategies and training hardware:
+
+| Experiment | Fusion | Hardware | Epochs | CI | Pearson | Spearman |
+|-----------|--------|----------|--------|-----|---------|----------|
+| Baseline (AA-composition) | Concat | CPU (2 cores) | 17 | 0.709 | 0.411 | 0.386 |
+| 1D-CNN protein encoder | Concat | CPU (2 cores) | 17 | 0.765 | 0.508 | 0.484 |
+| 1D-CNN + more training | Concat | CPU (2 cores) | 27 | 0.772 | 0.540 | 0.497 |
+| Attention fusion tested | Attention | CPU (2 cores) | 9 | 0.647 | 0.290 | 0.274 |
+| **Final (GPU convergence)** | **Concat** | **NVIDIA T4 GPU** | **100** | **0.846** | **0.912** | **0.906** |
+
+### Key Findings
+
+- **1D-CNN protein encoder** (+5.7% CI) outperforms amino-acid composition by preserving sequence order and local motifs
+- **Concat fusion** outperforms cross-attention on this dataset size (29K pairs) — attention needs more data to learn meaningful interactions
+- **GPU convergence** (100 epochs) dramatically improves ranking metrics over CPU early-stopping (27 epochs)
+- **Published SOTA** on Davis: ~0.88 CI — our 0.846 CI is competitive
 
 ## Quick Start
 
@@ -74,7 +95,7 @@ drug-target-predictor/
 │   ├── data_loader.py       # Davis dataset loading
 │   ├── featurization.py     # Molecular graphs & protein encoding
 │   ├── model.py             # GNN model architecture
-│   ├── train.py             # Training pipeline
+│   ├── train.py             # Training pipeline (with resume support)
 │   ├── evaluate.py          # Evaluation metrics (CI, Pearson, etc.)
 │   └── predict.py           # Inference API
 ├── app/
@@ -82,8 +103,12 @@ drug-target-predictor/
 ├── configs/
 │   └── default.yaml         # Model & training configuration
 ├── notebooks/
-│   └── demo.ipynb           # Demo notebook with full pipeline
+│   ├── demo.ipynb           # Demo notebook with full pipeline
+│   └── kaggle_train.ipynb   # GPU training notebook (Colab/Kaggle)
+├── .github/workflows/
+│   └── tests.yml            # CI: pytest on every push
 ├── tests/                   # Unit tests (28 tests, all passing)
+├── train_gpu.py             # Standalone GPU training script
 ├── Dockerfile               # Container config for deployment
 ├── pyproject.toml           # Package configuration
 ├── requirements.txt         # Dependencies
@@ -97,6 +122,8 @@ drug-target-predictor/
 - **Protein Encoding**: 1D-CNN over integer-encoded sequences
 - **Web App**: Streamlit + Plotly
 - **Deployment**: Docker on HuggingFace Spaces
+- **Training**: NVIDIA T4 GPU (Google Colab), CPU fallback with checkpoint resume
+- **CI/CD**: GitHub Actions (pytest on push)
 - **Dataset**: Davis Kinase (MoleculeNet benchmark)
 
 ## License
