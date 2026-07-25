@@ -1,12 +1,15 @@
 # Drug-Target Interaction Predictor
 # Install: pip install -r requirements.txt
+#
+# Works on: Windows (conda), Linux (Docker), Google Colab
 
-# Core
-torch==2.1.0
+# Core ML
+torch>=2.1.0,<3.0
 torch-geometric>=2.4.0
 numpy>=1.24.0,<2.0
 pandas>=2.0.0
 scipy>=1.10.0
+scikit-learn>=1.3.0
 
 # Chemistry
 rdkit>=2023.9.0
@@ -15,7 +18,7 @@ rdkit>=2023.9.0
 streamlit>=1.28.0
 plotly>=5.15.0
 
-# Config
+# Config / Utilities
 pyyaml>=6.0
 requests>=2.31.0
 
