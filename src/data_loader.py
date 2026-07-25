@@ -127,6 +127,14 @@ class DavisDataset:
         
         # Method 3: Use curated sample data as last resort
         logger.warning(f"All download methods failed: {errors}")
+        
+        if not any(self.data_dir.glob("*.csv")):
+            raise RuntimeError(
+                "All Davis dataset download methods failed:\n"
+                + "\n".join(f"  - {e}" for e in errors)
+                + "\nPlace davis_full.csv in data/raw/ manually."
+            )
+        
         logger.info("Using curated Davis-like sample data as fallback...")
         return self._create_curated_data()
     

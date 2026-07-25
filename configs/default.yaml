@@ -23,7 +23,7 @@ model:
     dropout: 0.2
   
   fusion:
-    type: "concat"  # Options: concat, attention, bilinear
+    type: "concat"  # Options: concat, attention, bilinear (concat performs better on Davis)
     hidden_dim: 256
   
   prediction_head:
