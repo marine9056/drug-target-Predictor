@@ -9,7 +9,7 @@ A Graph Neural Network model that predicts binding affinity between drug molecul
 
 ## Live Demo
 
-Try the deployed app: **[HuggingFace Spaces Demo](https://haseeb3454-drug-target-predictor.hf.space)**
+> **Status:** HuggingFace Spaces deployment is in progress. The app runs locally via `streamlit run app/streamlit_app.py`.
 
 ## Overview
 
@@ -34,37 +34,44 @@ Protein (Sequence) -> Integer Encoding -> 1D-CNN -> Protein Embedding (128-d)
 
 ## Results
 
-### Final Model (GPU-trained, 100 epochs on NVIDIA T4)
+### Verified Results (CPU, local checkpoint)
 
-Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split):
+Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split, seed=42):
 
 | Metric | Value |
 |--------|-------|
-| MSE | 1.451 |
-| MAE | 0.954 |
-| R² | 0.548 |
-| Concordance Index (CI) | **0.846** |
-| Pearson Correlation | **0.912** |
-| Spearman Correlation | **0.906** |
+| MSE | 0.607 |
+| MAE | 0.489 |
+| R² | 0.420 |
+| Concordance Index (CI) | **0.772** |
+| Pearson Correlation | **0.540** |
+| Spearman Correlation | **0.497** |
+
+### GPU Training (Colab T4, 100 epochs — output metrics)
+
+Training on NVIDIA T4 (Google Colab) showed improved ranking:
+CI 0.846, Pearson 0.912, Spearman 0.906, but MSE 1.451.
+
+> **Note:** The GPU checkpoint needs re-downloading from Colab to locally verify
+> and reproduce these results. The Colab session expired before the checkpoint
+> was saved. Retraining is in progress.
 
 ### Experiment Comparison
-
-We systematically compared fusion strategies and training hardware:
 
 | Experiment | Fusion | Hardware | Epochs | CI | Pearson | Spearman |
 |-----------|--------|----------|--------|-----|---------|----------|
 | Baseline (AA-composition) | Concat | CPU (2 cores) | 17 | 0.709 | 0.411 | 0.386 |
 | 1D-CNN protein encoder | Concat | CPU (2 cores) | 17 | 0.765 | 0.508 | 0.484 |
-| 1D-CNN + more training | Concat | CPU (2 cores) | 27 | 0.772 | 0.540 | 0.497 |
+| 1D-CNN + more training | Concat | CPU (2 cores) | 27 | **0.772** | **0.540** | **0.497** |
 | Attention fusion tested | Attention | CPU (2 cores) | 9 | 0.647 | 0.290 | 0.274 |
-| **Final (GPU convergence)** | **Concat** | **NVIDIA T4 GPU** | **100** | **0.846** | **0.912** | **0.906** |
+| GPU convergence (output) | Concat | NVIDIA T4 GPU | 100 | 0.846 | 0.912 | 0.906 |
 
 ### Key Findings
 
 - **1D-CNN protein encoder** (+5.7% CI) outperforms amino-acid composition by preserving sequence order and local motifs
 - **Concat fusion** outperforms cross-attention on this dataset size (29K pairs) — attention needs more data to learn meaningful interactions
 - **GPU convergence** (100 epochs) dramatically improves ranking metrics over CPU early-stopping (27 epochs)
-- **Published SOTA** on Davis: ~0.88 CI — our 0.846 CI is competitive
+- **Published SOTA** on Davis: ~0.88 CI — our verified 0.772 CI is competitive; GPU result of 0.846 is pending local verification
 
 ## Quick Start
 
@@ -74,6 +81,10 @@ We systematically compared fusion strategies and training hardware:
 git clone https://github.com/marine9056/drug-target-Predictor.git
 cd drug-target-Predictor
 pip install -r requirements.txt
+
+# Install PyG (match your PyTorch version)
+pip install torch-geometric
+
 streamlit run app/streamlit_app.py
 ```
 
@@ -125,6 +136,14 @@ drug-target-predictor/
 - **Training**: NVIDIA T4 GPU (Google Colab), CPU fallback with checkpoint resume
 - **CI/CD**: GitHub Actions (pytest on push)
 - **Dataset**: Davis Kinase (MoleculeNet benchmark)
+
+## Known Limitations
+
+- **MSE vs ranking tradeoff:** The model compresses predictions into a narrow range (4.3–8.0) while true labels span 5.0–10.4. This hurts MSE (0.607) but preserves ranking order (CI 0.772, Spearman 0.497), which is more useful for drug screening.
+- **High-pKd bias:** The model under-predicts high-affinity pairs (pKd > 9.0). This is a known limitation of the Davis dataset distribution — only a small fraction of pairs have very high binding.
+- **Single dataset:** Trained only on Davis Kinase. Generalization to other target families (GPCRs, proteases) has not been tested.
+- **CPU-only validated:** Full validation was done on CPU (2 cores, 27 epochs). GPU checkpoint was lost from Colab session — retraining in progress.
+- **No adversarial robustness testing:** Predictions have not been validated against adversarial perturbations.
 
 ## License
 

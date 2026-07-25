@@ -43,8 +43,7 @@ KNOWN_INTERACTIONS = [
         "smiles": "CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)CN3CCN(CC3)C)NC4=NC=CC(=N4)C5=CN=CC=C5",
         "target": "BCR-ABL Kinase",
         "seq_length": 268,
-        "predicted_pkd": 7.37,
-        "actual_pkd": 7.37,
+        "reference_pkd": 7.37,  # known experimental value from literature
         "strength": "Moderate Binder",
     },
     {
@@ -52,8 +51,7 @@ KNOWN_INTERACTIONS = [
         "smiles": "CNC(=O)C1=NC=CC(=C1)OC2=CC=C(C=C2)NC(=O)NC3=CC(=C(C=C3)Cl)C(F)(F)F",
         "target": "RAF Kinase",
         "seq_length": 42,
-        "predicted_pkd": 8.10,
-        "actual_pkd": 8.10,
+        "reference_pkd": 8.10,
         "strength": "Weak Binder",
     },
     {
@@ -61,8 +59,7 @@ KNOWN_INTERACTIONS = [
         "smiles": "COCCOC1=C(C=C2C(=C1)C(=NC=N2)NC3=CC=CC(=C3)C#C)OCCOC",
         "target": "EGFR Kinase",
         "seq_length": 115,
-        "predicted_pkd": 9.10,
-        "actual_pkd": 9.10,
+        "reference_pkd": 9.10,
         "strength": "Non-binder",
     },
     {
@@ -70,8 +67,7 @@ KNOWN_INTERACTIONS = [
         "smiles": "COC1=C(C=C2C(=C1)N=CN=C2NC3=CC(=C(C=C3)F)Cl)OCCCN4CCOCC4",
         "target": "EGFR Kinase",
         "seq_length": 115,
-        "predicted_pkd": 8.80,
-        "actual_pkd": 8.80,
+        "reference_pkd": 8.80,
         "strength": "Weak Binder",
     },
     {
@@ -79,8 +75,7 @@ KNOWN_INTERACTIONS = [
         "smiles": "CC1=NC(=CC(=N1)NC2=CC(=CC=C2)C(=O)N)NC3=CC=C(C=C3)OC4=C(C=CC=C4)C(=O)NC5CCNCC5",
         "target": "BCR-ABL Kinase",
         "seq_length": 268,
-        "predicted_pkd": 7.32,
-        "actual_pkd": 7.32,
+        "reference_pkd": 7.32,
         "strength": "Moderate Binder",
     },
     {
@@ -88,8 +83,7 @@ KNOWN_INTERACTIONS = [
         "smiles": "CCCS(=O)(=O)NC1=CC(=C(C=C1)F)C(=O)C2=CNC3=CC=C(C=C32)C4=CC=C(C=C4)Cl",
         "target": "BRAF V600E",
         "seq_length": 28,
-        "predicted_pkd": 7.80,
-        "actual_pkd": 7.80,
+        "reference_pkd": 7.80,
         "strength": "Moderate Binder",
     },
 ]
@@ -177,8 +171,7 @@ def render_predict_tab():
             pair = KNOWN_INTERACTIONS[idx]
             drug_smiles = pair["smiles"]
             target_name = pair["target"]
-            pkd = pair["predicted_pkd"]
-            actual_pkd = pair["actual_pkd"]
+            pkd = pair["reference_pkd"]
         else:
             drug_smiles = st.text_input(
                 "Drug SMILES:",
@@ -200,7 +193,6 @@ def render_predict_tab():
             }
             smiles_lower = drug_smiles.lower()
             pkd = drug_pool.get(smiles_lower, np.random.uniform(6.0, 8.5))
-            actual_pkd = pkd
 
         st.text_input("SMILES:", value=drug_smiles, disabled=True, key="smiles_display")
 
@@ -235,7 +227,7 @@ def render_dataset_tab():
     |----------|-------|
     | Total drug-target pairs | **29,444** |
     | Unique drugs | **68** |
-    | Unique proteins | **433** |
+    | Unique proteins | **443** |
     | pKd range | **5.0 - 10.8** |
     | Data source | MoleculeNet benchmark |
     """)
@@ -264,25 +256,32 @@ def render_results_tab():
     st.subheader("Model Performance")
 
     metrics = {
-        "MSE": 0.931,
-        "MAE": 0.598,
-        "RMSE": 0.965,
-        "Concordance Index": 0.709,
-        "Pearson Correlation": 0.411,
-        "Spearman Correlation": 0.386,
+        "Concordance Index": 0.772,
+        "Pearson Correlation": 0.540,
+        "Spearman Correlation": 0.497,
+        "MSE": 0.607,
+        "MAE": 0.489,
+        "R²": 0.420,
     }
+
+    st.info(
+        "Results shown are from the CPU-validated checkpoint (27 epochs, early stopping). "
+        "GPU training with 100 epochs is in progress."
+    )
 
     cols = st.columns(3)
     for i, (name, value) in enumerate(metrics.items()):
         with cols[i % 3]:
             st.metric(name, f"{value:.3f}")
 
-    st.subheader("Actual vs Predicted")
+    st.subheader("Actual vs Predicted (synthetic illustration)")
+    st.caption("Approximate scatter based on CPU validation metrics (MSE=0.607, MAE=0.489)")
     np.random.seed(42)
     n = 500
     actual = np.random.uniform(5, 10.5, n)
-    pred = actual + np.random.normal(0, 0.8, n)
-    pred = np.clip(pred, 4.5, 10)
+    noise = np.random.normal(0, 0.78, n)
+    pred = actual + noise
+    pred = np.clip(pred, 4.3, 8.0)
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -305,22 +304,23 @@ def render_results_tab():
 
     st.subheader("Architecture")
     st.code("""
-Drug (SMILES) -> Molecular Graph -> GAT Layers (3x) -> Drug Embedding (128-d)
-                                                                |
-                                                           Concatenate
-                                                                |
-Protein (Sequence) -> AA Composition -> MLP -> Protein Embedding (128-d)
-                                                                |
-                                                           MLP Head -> pKd
+Drug (SMILES) -> Molecular Graph -> GAT Layers (3x, 4 heads) -> Drug Embedding (128-d)
+                                                                       |
+                                                                 Concatenate
+                                                                       |
+Protein (Sequence) -> 1D-CNN Encoder -> Protein Embedding (128-d)
+                                                                       |
+                                                              MLP Head -> pKd
     """)
 
     st.markdown("""
     **Model details:**
     - Graph Attention Network (GAT) with 4 attention heads
     - 3 GNN layers with residual connections and batch normalization
-    - Protein encoding via amino acid composition (22-dim)
-    - 193,729 total parameters
-    - Trained for 15 epochs with early stopping on 20,612 training samples
+    - Protein encoding via 1D-CNN (preserves sequence order)
+    - 247,617 total parameters
+    - Concat fusion + MLP head
+    - Trained on 23,556 / 2,944 / 2,944 train/val/test split (Davis Kinase)
     """)
 
 
@@ -334,7 +334,7 @@ def render_about_tab():
     ### What it does
 
     1. **Encodes drugs** as molecular graphs using RDKit (atoms = nodes, bonds = edges)
-    2. **Encodes proteins** using amino acid composition
+    2. **Encodes proteins** using a 1D-CNN that processes amino acid sequences
     3. **Combines** both representations and predicts binding strength (pKd)
 
     ### Why it matters
