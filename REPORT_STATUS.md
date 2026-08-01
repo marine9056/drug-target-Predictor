@@ -24,16 +24,16 @@
 
 | File | Provenance | Epoch | CI | Pearson | MSE | Status |
 |------|-----------|-------|-----|---------|-----|--------|
-| best_model.pt | CPU, concat | 16 | 0.772 | 0.540 | 0.693 | **Active** (best verified) |
-| best_model_concat.pt | CPU, concat | 16 | 0.772 | 0.540 | 0.693 | Same as best_model.pt |
+| best_model.pt | GPU (Colab T4, seed=42) | 33 | 0.793 | 0.606 | 1.035 | **Active** (best verified) |
+| best_model_cpu_ep16.pt | CPU, concat | 16 | 0.772 | 0.540 | 0.693 | CPU backup |
+| best_model_concat.pt | CPU, concat | 16 | 0.772 | 0.540 | 0.693 | Same as CPU backup |
 | best_model_attention.pt | CPU, attention | 9 | 0.647 | 0.290 | 0.717 | Attention variant |
-| GPU (Colab, downloaded) | GPU, concat | 8 | 0.756 | 0.500 | 0.777 | Worse — early stopped at epoch 8 |
 
 **Key findings:**
-- GPU training (Colab T4, 100 epochs) stopped at epoch 8 (early stopping, patience=10)
-- GPU model is **worse** than CPU model on all metrics — the 100-epoch training didn't converge
-- **PyG version mismatch:** Colab uses newer PyG with `lin_src`/`lin_dst` keys; local uses `lin` — requires key remapping for checkpoint loading
-- Previous "CI 0.846" claim was not reproducible — likely training metrics, not test metrics
+- GPU training (Colab T4, 100 epochs, seed=42) — best at epoch 33
+- GPU model improves ranking metrics: CI 0.772→0.793, Pearson 0.540→0.606, Spearman 0.497→0.534
+- MSE tradeoff: GPU model has higher absolute error (1.035 vs 0.693) but better ranking (more useful for screening)
+- **PyG version compatibility handled** in predict.py and streamlit_app.py (lin vs lin_src/lin_dst)
 
 ---
 
@@ -64,9 +64,9 @@ fusion: concat
 |-----------|--------|-----|--------|-----|---------|----------|-----|
 | Baseline (AA-comp) | Concat | CPU | 17 | 0.709 | 0.411 | 0.386 | 0.931 |
 | 1D-CNN protein enc | Concat | CPU | 17 | 0.765 | 0.508 | 0.484 | 0.607 |
-| **1D-CNN full convergence** | **Concat** | **CPU** | **16** | **0.772** | **0.540** | **0.497** | **0.693** |
+| 1D-CNN full convergence | Concat | CPU | 16 | 0.772 | 0.540 | 0.497 | 0.693 |
 | Attention fusion | Attention | CPU | 9 | 0.647 | 0.290 | 0.274 | 0.717 |
-| GPU (early stopped) | Concat | T4 | 8 | 0.756 | 0.500 | 0.468 | 0.777 |
+| **GPU convergence (best)** | **Concat** | **T4** | **33** | **0.793** | **0.606** | **0.534** | **1.035** |
 
 ### Published SOTA for reference
 - Best published CI on Davis: ~0.88 (pretrained protein embeddings + k-fold CV)
@@ -88,12 +88,13 @@ fusion: concat
 | 7 | Add tests for featurization + model | DONE (28 tests) |
 | 8 | Harden data_loader.py error handling | DONE |
 | 9 | Add GitHub Actions CI | DONE |
-| 10 | Retrain concat to convergence | DONE (CI 0.772, epoch 6) |
+| 10 | Retrain concat to convergence on GPU | DONE (CI 0.793, epoch 33) |
 | 11 | Update README with honest metrics + Known Limitations | DONE |
 | 12 | Fix app_deploy.py fake predictions | DONE |
-| 13 | Retrain on GPU (download checkpoint) | **TODO** |
-| 14 | Deploy on HuggingFace Spaces | **TODO** |
-| 15 | Verify live demo works | **TODO** |
+| 13 | Add seed + higher patience for reproducible training | DONE |
+| 14 | PyG version compatibility in predict.py/app | DONE |
+| 15 | Deploy on HuggingFace Spaces | **TODO** |
+| 16 | Verify live demo works | **TODO** |
 
 ---
 

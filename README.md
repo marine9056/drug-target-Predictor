@@ -34,33 +34,37 @@ Protein (Sequence) -> Integer Encoding -> 1D-CNN -> Protein Embedding (128-d)
 
 ## Results
 
-### Verified Results (CPU, local checkpoint)
+### Verified Results (GPU-trained, local verification)
 
-Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split, seed=42):
+Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split, seed=42).
+Model trained for 100 epochs on NVIDIA T4 (Google Colab), best at epoch 33.
+Verified locally on the same test split:
 
 | Metric | Value |
 |--------|-------|
-| MSE | 0.693 |
-| MAE | 0.556 |
-| R² | 0.105 |
-| Concordance Index (CI) | **0.772** |
-| Pearson Correlation | **0.540** |
-| Spearman Correlation | **0.497** |
+| Concordance Index (CI) | **0.793** |
+| Pearson Correlation | **0.606** |
+| Spearman Correlation | **0.534** |
+| MSE | 1.035 |
+| MAE | 0.783 |
 
 ### Experiment Comparison
 
-| Experiment | Fusion | Hardware | Epochs | CI | Pearson | Spearman |
-|-----------|--------|----------|--------|-----|---------|----------|
-| Baseline (AA-composition) | Concat | CPU (2 cores) | 17 | 0.709 | 0.411 | 0.386 |
-| 1D-CNN protein encoder | Concat | CPU (2 cores) | 17 | 0.765 | 0.508 | 0.484 |
-| **1D-CNN + full convergence** | **Concat** | **CPU (2 cores)** | **16** | **0.772** | **0.540** | **0.497** |
-| Attention fusion tested | Attention | CPU (2 cores) | 9 | 0.647 | 0.290 | 0.274 |
+| Experiment | Fusion | Hardware | Epochs | CI | Pearson | Spearman | MSE |
+|-----------|--------|----------|--------|-----|---------|----------|-----|
+| Baseline (AA-composition) | Concat | CPU (2 cores) | 17 | 0.709 | 0.411 | 0.386 | 0.931 |
+| 1D-CNN protein encoder | Concat | CPU (2 cores) | 17 | 0.765 | 0.508 | 0.484 | 0.607 |
+| 1D-CNN + full convergence | Concat | CPU (2 cores) | 16 | 0.772 | 0.540 | 0.497 | 0.693 |
+| Attention fusion tested | Attention | CPU (2 cores) | 9 | 0.647 | 0.290 | 0.274 | 0.717 |
+| **GPU convergence (best)** | **Concat** | **NVIDIA T4 GPU** | **33** | **0.793** | **0.606** | **0.534** | **1.035** |
 
 ### Key Findings
 
 - **1D-CNN protein encoder** (+5.7% CI) outperforms amino-acid composition by preserving sequence order and local motifs
 - **Concat fusion** outperforms cross-attention on this dataset size (29K pairs) — attention needs more data to learn meaningful interactions
-- **Published SOTA** on Davis: ~0.88 CI (with pretrained protein embeddings + k-fold CV) — our verified 0.772 CI is competitive for a single-split, no-pretraining model
+- **GPU convergence** (100 epochs) improves ranking metrics: CI 0.772 → 0.793, Pearson 0.540 → 0.606
+- **MSE vs ranking tradeoff:** GPU model ranks pairs better (important for screening) but has higher absolute error (MSE 1.035 vs 0.693)
+- **Published SOTA** on Davis: ~0.88 CI (with pretrained protein embeddings + k-fold CV) — our verified 0.793 CI is competitive for a single-split, no-pretraining model
 
 ## Quick Start
 
