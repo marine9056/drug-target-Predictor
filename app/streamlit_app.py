@@ -62,18 +62,25 @@ def load_model():
         fusion_dim=config["model"]["fusion"]["hidden_dim"]
     )
 
-    # Handle PyG version mismatch (older checkpoints use "lin" keys)
+    # Handle PyG GATConv version mismatch in both directions:
+    #   older PyG uses a single "lin.weight"
+    #   newer PyG uses split "lin_src.weight" / "lin_dst.weight" (tied to the same value
+    #   for a standard, non-bipartite GATConv, so this conversion is exact, not approximate)
     state = checkpoint["model_state_dict"]
-    if any(".lin.weight" in k and "lin_src" not in k and "lin_dst" not in k for k in state.keys()):
-        new_state = {}
-        for k, v in state.items():
-            if ".lin.weight" in k and "lin_src" not in k and "lin_dst" not in k:
-                base = k.replace(".lin.weight", "")
-                new_state[f"{base}.lin_src.weight"] = v
-                new_state[f"{base}.lin_dst.weight"] = v
-            else:
-                new_state[k] = v
-        state = new_state
+    new_state = {}
+    for k, v in state.items():
+        if ".lin_src.weight" in k:
+            base = k.replace(".lin_src.weight", "")
+            new_state[f"{base}.lin.weight"] = v
+        elif ".lin_dst.weight" in k:
+            continue  # duplicate of lin_src, skip
+        elif ".lin.weight" in k and "lin_src" not in k and "lin_dst" not in k:
+            base = k.replace(".lin.weight", "")
+            new_state[f"{base}.lin_src.weight"] = v
+            new_state[f"{base}.lin_dst.weight"] = v
+        else:
+            new_state[k] = v
+    state = new_state
 
     model.load_state_dict(state)
     model.eval()
