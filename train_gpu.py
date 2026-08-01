@@ -15,6 +15,7 @@ Usage:
 """
 
 import time
+import random
 import torch
 import yaml
 import numpy as np
@@ -29,10 +30,22 @@ from src.train import DrugTargetDataset, collate_fn, Trainer
 from src.evaluate import calculate_metrics
 
 
+def set_seed(seed=42):
+    """Fix all random seeds so results are reproducible."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    print(f"  Seed set to {seed}")
+
+
 def main():
     print("=" * 60)
     print("  DRUG-TARGET INTERACTION PREDICTOR — GPU TRAINING")
     print("=" * 60)
+
+    set_seed(42)
 
     # Check GPU
     if torch.cuda.is_available():

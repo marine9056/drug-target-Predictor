@@ -82,7 +82,25 @@ class BindingPredictor:
             fusion_dim=config.get("model", {}).get("fusion", {}).get("hidden_dim", 256)
         )
         
-        model.load_state_dict(checkpoint["model_state_dict"])
+        # Handle PyG version mismatch:
+        # Older PyG checkpoints use "lin" keys; newer model expects "lin_src"/"lin_dst"
+        state = checkpoint["model_state_dict"]
+        has_old_lin = any(
+            ".lin.weight" in k and "lin_src" not in k and "lin_dst" not in k
+            for k in state.keys()
+        )
+        if has_old_lin:
+            new_state = {}
+            for k, v in state.items():
+                if ".lin.weight" in k and "lin_src" not in k and "lin_dst" not in k:
+                    base = k.replace(".lin.weight", "")
+                    new_state[f"{base}.lin_src.weight"] = v
+                    new_state[f"{base}.lin_dst.weight"] = v
+                else:
+                    new_state[k] = v
+            state = new_state
+        
+        model.load_state_dict(state)
         
         return cls(model, device=device)
     
