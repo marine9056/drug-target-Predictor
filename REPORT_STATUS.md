@@ -22,9 +22,9 @@
 
 ## 2. Verified Checkpoint Status
 
-| File | Provenance | Epoch | CI | Pearson | MSE | Status |
-|------|-----------|-------|-----|---------|-----|--------|
-| best_model.pt | GPU (Colab T4, seed=42) | 33 | 0.793 | 0.606 | 1.035 | **Active** (best verified) |
+| File | Provenance | Epoch | CI | Pearson | MSE (calib) | Status |
+|------|-----------|-------|-----|---------|-------------|--------|
+| best_model.pt | GPU (Colab T4, seed=42) | 33 | 0.793 | 0.606 | ~0.51 | **Active** (best verified) |
 | best_model_cpu_ep16.pt | CPU, concat | 16 | 0.772 | 0.540 | 0.693 | CPU backup |
 | best_model_concat.pt | CPU, concat | 16 | 0.772 | 0.540 | 0.693 | Same as CPU backup |
 | best_model_attention.pt | CPU, attention | 9 | 0.647 | 0.290 | 0.717 | Attention variant |
@@ -32,7 +32,7 @@
 **Key findings:**
 - GPU training (Colab T4, 100 epochs, seed=42) — best at epoch 33
 - GPU model improves ranking metrics: CI 0.772→0.793, Pearson 0.540→0.606, Spearman 0.497→0.534
-- MSE tradeoff: GPU model has higher absolute error (1.035 vs 0.693) but better ranking (more useful for screening)
+- **Post-hoc calibration added** (models/checkpoints/calibration.json, slope 0.977, intercept 0.834, fitted on training split only): corrects systematic under-prediction, RMSE 1.03 → 0.71 (test), ranking metrics unchanged. Raw uncalibrated MSE was 1.035.
 - **PyG version compatibility handled** in predict.py and streamlit_app.py (lin vs lin_src/lin_dst)
 
 ---
@@ -66,12 +66,12 @@ fusion: concat
 | 1D-CNN protein enc | Concat | CPU | 17 | 0.765 | 0.508 | 0.484 | 0.607 |
 | 1D-CNN full convergence | Concat | CPU | 16 | 0.772 | 0.540 | 0.497 | 0.693 |
 | Attention fusion | Attention | CPU | 9 | 0.647 | 0.290 | 0.274 | 0.717 |
-| **GPU convergence (best)** | **Concat** | **T4** | **33** | **0.793** | **0.606** | **0.534** | **1.035** |
+| **GPU convergence (best)** | **Concat** | **T4** | **33** | **0.793** | **0.606** | **0.534** | **~0.51 (calib)** |
 
 ### Published SOTA for reference
 - Best published CI on Davis: ~0.88 (pretrained protein embeddings + k-fold CV)
-- Our verified CI: 0.772 (CPU, single split)
-- Our reported CI: 0.846 (GPU, pending local verification)
+- Our verified CI: 0.793 (GPU, single split, seed=42)
+- Raw (uncalibrated) MSE was 1.035; calibration reduces test RMSE to ~0.71
 
 ---
 
@@ -93,18 +93,20 @@ fusion: concat
 | 12 | Fix app_deploy.py fake predictions | DONE |
 | 13 | Add seed + higher patience for reproducible training | DONE |
 | 14 | PyG version compatibility in predict.py/app | DONE |
-| 15 | Deploy on HuggingFace Spaces | **TODO** |
-| 16 | Verify live demo works | **TODO** |
+| 15 | Deploy on Streamlit Community Cloud | DONE (live app deployed) |
+| 16 | Verify live demo works | **TODO** (verify after this push auto-redeploys) |
+| 17 | Fix binding classification (was inverted: low pKd shown as "Strong") | DONE |
+| 18 | Add protein input validation (garbage/empty sequences) | DONE |
+| 19 | Add post-hoc prediction calibration | DONE (RMSE 1.03→0.71) |
 
 ---
 
 ## 6. Known Limitations
 
-- **MSE vs ranking tradeoff:** Model compresses predictions (4.3-8.0) while labels span 5.0-10.4
-- **High-pKd bias:** Under-predicts high-affinity pairs (pKd > 9.0)
+- **Absolute accuracy:** Calibrated RMSE ~0.71 pKd units; individual predictions can be off by 1-2 units. Ranking (CI 0.793) is more reliable than absolute values.
+- **High-pKd bias:** Under-predicts the strongest binders (pKd > 9.0) even after calibration — Davis has few very-high-affinity pairs.
 - **Single dataset:** Davis Kinase only, no cross-family validation
 - **No adversarial robustness testing**
-- **CPU-only verified:** GPU checkpoint needs re-downloading
 
 ---
 

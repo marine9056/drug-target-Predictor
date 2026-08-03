@@ -6,6 +6,7 @@ Inference utilities for predicting drug-target binding.
 
 import os
 import sys
+import json
 from pathlib import Path
 
 # Add project root to path
@@ -29,7 +30,8 @@ class BindingPredictor:
         model: DrugTargetPredictor,
         device: str = "auto",
         max_atoms: int = 100,
-        max_length: int = 1000
+        max_length: int = 1000,
+        calibration: Optional[Dict[str, float]] = None
     ):
         """
         Args:
@@ -37,10 +39,14 @@ class BindingPredictor:
             device: Device for inference
             max_atoms: Maximum atoms per molecule
             max_length: Maximum protein sequence length
+            calibration: Optional post-hoc linear calibration
+                {"slope": ..., "intercept": ...}, applied as
+                pKd_cal = slope * pKd_raw + intercept
         """
         self.model = model
         self.max_atoms = max_atoms
         self.max_length = max_length
+        self.calibration = calibration
         
         # Set device
         if device == "auto":
@@ -104,7 +110,17 @@ class BindingPredictor:
 
         model.load_state_dict(state)
         
-        return cls(model, device=device)
+        # Optional post-hoc calibration (fitted on training split only, no leakage)
+        calibration = None
+        calib_path = Path(checkpoint_path).parent / "calibration.json"
+        if calib_path.exists():
+            try:
+                calib = json.loads(calib_path.read_text())
+                calibration = {"slope": calib["slope"], "intercept": calib["intercept"]}
+            except Exception:
+                calibration = None
+        
+        return cls(model, device=device, calibration=calibration)
     
     def predict(
         self,
@@ -136,6 +152,15 @@ class BindingPredictor:
             return {"error": f"Invalid drug SMILES: {str(e)}"}
         
         # Process protein
+        if not self._valid_protein(protein_sequence):
+            valid_chars = sum(1 for c in protein_sequence if c in "ACDEFGHIKLMNPQRSTVWY")
+            return {
+                "error": (
+                    f"Protein sequence contains too few valid amino-acid characters "
+                    f"({valid_chars} of {len(protein_sequence)}). "
+                    f"Expected 20 standard amino acids (ACDEFGHIKLMNPQRSTVWY)."
+                )
+            }
         protein_encoding = self.protein_featurizer.sequence_to_encoding(protein_sequence)
         protein_tensor = torch.tensor([protein_encoding], dtype=torch.long)
         
@@ -149,12 +174,16 @@ class BindingPredictor:
         
         kd_value = prediction.cpu().numpy().item()
         
+        # Post-hoc calibration (corrects systematic underprediction).
+        # Fit on training split only, so it is applied identically to any input.
+        kd_value = self._apply_calibration(kd_value)
+        
         # Classify binding strength
         binding_strength = self._classify_binding(kd_value)
         
         return {
             "kd_value": kd_value,
-            "kd_units": "log(nM)",
+            "kd_units": "pKd (-log10 Kd, M)",
             "binding_strength": binding_strength,
             "drug_smiles": drug_smiles,
             "protein_length": len(protein_sequence)
@@ -182,7 +211,8 @@ class BindingPredictor:
         
         return results
     
-    def _classify_binding(self, kd_value: float) -> str:
+    @staticmethod
+    def _classify_binding(kd_value: float) -> str:
         """
         Classify binding strength based on Kd value.
         
@@ -192,16 +222,46 @@ class BindingPredictor:
         Returns:
             Binding strength classification
         """
-        # Kd values are in log scale
-        # Lower Kd = stronger binding
-        if kd_value < 5.5:
+        # pKd = -log10(Kd in M). Higher pKd = lower Kd = stronger binding.
+        if kd_value >= 8.5:
             return "Strong Binder"
-        elif kd_value < 7.0:
+        elif kd_value >= 7.0:
             return "Moderate Binder"
-        elif kd_value < 8.5:
+        elif kd_value >= 5.5:
             return "Weak Binder"
         else:
             return "Non-binder"
+
+    def _apply_calibration(self, kd_value: float) -> float:
+        """
+        Apply post-hoc linear calibration to a raw prediction.
+        
+        Args:
+            kd_value: Raw model output
+            
+        Returns:
+            Calibrated pKd value (unchanged if no calibration configured)
+        """
+        if self.calibration:
+            return (
+                self.calibration["slope"] * kd_value
+                + self.calibration["intercept"]
+            )
+        return kd_value
+
+    @staticmethod
+    def _valid_protein(protein_sequence: str) -> bool:
+        """
+        Check a protein sequence contains enough valid amino-acid characters.
+        
+        Args:
+            protein_sequence: Input sequence
+            
+        Returns:
+            True if at least half (and at least 10) characters are standard amino acids
+        """
+        valid_chars = [c for c in protein_sequence if c in "ACDEFGHIKLMNPQRSTVWY"]
+        return len(valid_chars) >= max(10, int(0.5 * len(protein_sequence)))
     
     def explain_prediction(
         self,
@@ -252,7 +312,7 @@ class BindingPredictor:
         kd = prediction.get("kd_value", 0)
         strength = prediction.get("binding_strength", "Unknown")
         
-        interpretation = f"Predicted binding affinity: {kd:.2f} log(nM) ({strength})\n"
+        interpretation = f"Predicted binding affinity: pKd {kd:.2f} (-log10 Kd, M) ({strength})\n"
         
         if descriptors:
             mw = descriptors.get("molecular_weight", 0)

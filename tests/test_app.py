@@ -52,23 +52,51 @@ class TestEvaluation:
         ast.parse(code)
 
     def test_binding_classification(self):
-        """Test binding classification logic."""
+        """Test binding classification logic.
+
+        pKd = -log10(Kd in M). HIGHER pKd = LOWER Kd = STRONGER binding.
+        """
+        from src.predict import BindingPredictor
+
         thresholds = {
-            5.0: "Strong Binder",
-            6.5: "Moderate Binder",
-            8.0: "Weak Binder",
-            10.0: "Non-binder",
+            5.0: "Non-binder",
+            6.5: "Weak Binder",
+            8.0: "Moderate Binder",
+            10.0: "Strong Binder",
         }
         for kd, expected in thresholds.items():
-            if kd < 5.5:
-                strength = "Strong Binder"
-            elif kd < 7.0:
-                strength = "Moderate Binder"
-            elif kd < 8.5:
-                strength = "Weak Binder"
-            else:
-                strength = "Non-binder"
+            strength = BindingPredictor._classify_binding(kd)
             assert strength == expected
+
+    def test_calibration_application(self):
+        """Test that linear calibration shifts predictions the right way."""
+        from src.predict import BindingPredictor
+
+        class FakeModel:
+            def to(self, device):
+                return self
+            def eval(self):
+                return self
+
+        calib = {"slope": 2.0, "intercept": 1.0}
+        p = BindingPredictor(model=FakeModel(), device="cpu", calibration=calib)
+        assert p._apply_calibration(3.0) == 7.0
+        assert p._apply_calibration(5.0) == 11.0
+
+    def test_protein_validation(self):
+        """Test that garbage/empty protein sequences are rejected."""
+        from src.predict import BindingPredictor
+
+        class FakeModel:
+            def to(self, device):
+                return self
+            def eval(self):
+                return self
+
+        p = BindingPredictor(model=FakeModel(), device="cpu")
+        assert p._valid_protein("12345 !!! hello world $$$") is False
+        assert p._valid_protein("") is False
+        assert p._valid_protein("MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHF") is True
 
 
 if __name__ == "__main__":

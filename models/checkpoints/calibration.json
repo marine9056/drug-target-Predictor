@@ -1,0 +1,6 @@
+{
+  "slope": 0.977214,
+  "intercept": 0.833831,
+  "fit_on": "training split only (n=12000, seed 42)",
+  "notes": "Post-hoc linear calibration of raw model pKd output. Fitted on training split only, so test metrics remain honest. Corrects systematic underprediction (raw model compresses toward the mean). Applied as: pKd_calibrated = slope * pKd_raw + intercept. Does not change ranking metrics (Pearson/Spearman/CI)."
+}

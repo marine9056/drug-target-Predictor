@@ -90,24 +90,28 @@ def load_model():
 
 
 def draw_molecule(smiles: str):
+    from rdkit import Chem
+    from rdkit.Chem import Draw, AllChem
     try:
-        from rdkit import Chem
-        from rdkit.Chem import Draw, AllChem
         mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            return None
+    except Exception as e:
+        return None, f"SMILES parsing error: {e}"
+    if mol is None:
+        return None, "Invalid SMILES string"
+    try:
         AllChem.Compute2DCoords(mol)
-        return Draw.MolToImage(mol, size=(400, 300))
-    except Exception:
-        return None
+        return Draw.MolToImage(mol, size=(400, 300)), None
+    except Exception as e:
+        return None, f"Structure rendering failed: {e}"
 
 
 def classify_binding(kd_value: float):
-    if kd_value < 5.5:
+    # pKd = -log10(Kd in M). HIGHER pKd = STRONGER binding.
+    if kd_value >= 8.5:
         return "Strong Binder", "green"
-    elif kd_value < 7.0:
+    elif kd_value >= 7.0:
         return "Moderate Binder", "orange"
-    elif kd_value < 8.5:
+    elif kd_value >= 5.5:
         return "Weak Binder", "red"
     else:
         return "Non-binder", "darkred"
@@ -122,10 +126,10 @@ def create_gauge(value: float):
             'axis': {'range': [4, 11], 'tickwidth': 1},
             'bar': {'color': "#1f77b4"},
             'steps': [
-                {'range': [4, 5.5], 'color': "#2ecc71"},
-                {'range': [5.5, 7], 'color': "#f1c40f"},
-                {'range': [7, 8.5], 'color': "#e67e22"},
-                {'range': [8.5, 11], 'color': "#e74c3c"}
+                {'range': [4, 5.5], 'color': "#e74c3c"},
+                {'range': [5.5, 7], 'color': "#e67e22"},
+                {'range': [7, 8.5], 'color': "#f1c40f"},
+                {'range': [8.5, 11], 'color': "#2ecc71"}
             ],
             'threshold': {
                 'line': {'color': "red", 'width': 4},
@@ -182,11 +186,13 @@ def main():
         )
 
         if drug_smiles:
-            img = draw_molecule(drug_smiles)
+            img, error_reason = draw_molecule(drug_smiles)
             if img:
                 st.image(img, caption="Molecular Structure")
-            else:
+            elif error_reason == "Invalid SMILES string":
                 st.warning("Could not parse SMILES.")
+            else:
+                st.info(f"Structure preview unavailable ({error_reason}), but prediction will still run normally.")
 
     with col2:
         st.subheader("Protein Input")
@@ -207,6 +213,14 @@ def main():
         predict_button = st.button("Predict Binding Affinity", type="primary", use_container_width=True)
 
     if predict_button:
+        if not BindingPredictor._valid_protein(protein_sequence):
+            valid_chars = sum(1 for c in protein_sequence if c in "ACDEFGHIKLMNPQRSTVWY")
+            st.warning(
+                f"Protein sequence has too few valid amino-acid characters "
+                f"({valid_chars} of {len(protein_sequence)}). Expected 20 standard "
+                f"amino acids (ACDEFGHIKLMNPQRSTVWY), so this prediction is not meaningful."
+            )
+            return
         with st.spinner("Running GNN model..."):
             result = predictor.predict(drug_smiles, protein_sequence)
 
@@ -233,14 +247,14 @@ def main():
 
         st.subheader("Interpretation")
         kd_nM = 10 ** (9 - kd_value)
-        if kd_value < 5.5:
-            interp = f"**Strong binding predicted** (pKd={kd_value:.2f}, ~{kd_nM:.0f} nM). The drug shows high affinity for this target."
-        elif kd_value < 7.0:
-            interp = f"**Moderate binding predicted** (pKd={kd_value:.2f}, ~{kd_nM:.0f} nM). Promising candidate, may need optimization."
-        elif kd_value < 8.5:
-            interp = f"**Weak binding predicted** (pKd={kd_value:.2f}, ~{kd_nM:.0f} nM). Structural modifications may improve affinity."
+        if kd_value >= 8.5:
+            interp = f"**Strong binding predicted** (pKd={kd_value:.2f}, ~{kd_nM:.2f} nM). The drug shows high affinity for this target."
+        elif kd_value >= 7.0:
+            interp = f"**Moderate binding predicted** (pKd={kd_value:.2f}, ~{kd_nM:.2f} nM). Promising candidate, may need optimization."
+        elif kd_value >= 5.5:
+            interp = f"**Weak binding predicted** (pKd={kd_value:.2f}, ~{kd_nM:.2f} nM). Structural modifications may improve affinity."
         else:
-            interp = f"**Poor binding predicted** (pKd={kd_value:.2f}, ~{kd_nM:.0f} nM). Consider alternative scaffolds."
+            interp = f"**Poor binding predicted** (pKd={kd_value:.2f}, ~{kd_nM:.2f} nM). Consider alternative scaffolds."
         st.markdown(interp)
 
         try:

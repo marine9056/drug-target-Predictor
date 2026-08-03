@@ -9,7 +9,7 @@ A Graph Neural Network model that predicts binding affinity between drug molecul
 
 ## Live Demo
 
-> **Status:** HuggingFace Spaces deployment is in progress. The app runs locally via `streamlit run app/streamlit_app.py`.
+🔗 **[Try it live](https://drug-target-predictor-7g6gpzipeckyrwxlabyxwk.streamlit.app/)**
 
 ## Overview
 
@@ -38,15 +38,19 @@ Protein (Sequence) -> Integer Encoding -> 1D-CNN -> Protein Embedding (128-d)
 
 Trained on Davis Kinase Dataset (29,444 pairs, 80/10/10 split, seed=42).
 Model trained for 100 epochs on NVIDIA T4 (Google Colab), best at epoch 33.
-Verified locally on the same test split:
+Verified locally on the same test split (calibrated):
 
 | Metric | Value |
 |--------|-------|
 | Concordance Index (CI) | **0.793** |
 | Pearson Correlation | **0.606** |
 | Spearman Correlation | **0.534** |
-| MSE | 1.035 |
-| MAE | 0.783 |
+| MSE (calibrated) | ~0.51 |
+| RMSE (calibrated) | ~0.71 |
+
+Post-hoc linear calibration (slope 0.977, intercept 0.834, fitted on the training split only)
+corrects a systematic under-prediction bias (raw RMSE 1.03 → 0.71) without changing ranking
+metrics. Raw (uncalibrated) MSE was 1.035.
 
 ### Experiment Comparison
 
@@ -125,17 +129,16 @@ drug-target-predictor/
 - **Chemistry**: RDKit (SMILES parsing, molecular graphs)
 - **Protein Encoding**: 1D-CNN over integer-encoded sequences
 - **Web App**: Streamlit + Plotly
-- **Deployment**: Docker on HuggingFace Spaces
+- **Deployment**: Streamlit Community Cloud
 - **Training**: NVIDIA T4 GPU (Google Colab), CPU fallback with checkpoint resume
 - **CI/CD**: GitHub Actions (pytest on push)
 - **Dataset**: Davis Kinase (MoleculeNet benchmark)
 
 ## Known Limitations
 
-- **MSE vs ranking tradeoff:** The model compresses predictions into a narrow range (4.3–8.0) while true labels span 5.0–10.4. This hurts MSE (0.607) but preserves ranking order (CI 0.772, Spearman 0.497), which is more useful for drug screening.
-- **High-pKd bias:** The model under-predicts high-affinity pairs (pKd > 9.0). This is a known limitation of the Davis dataset distribution — only a small fraction of pairs have very high binding.
+- **Absolute accuracy:** With calibration, RMSE is ~0.71 pKd units (MSE ~0.51). Individual predictions can still be off by 1–2 pKd units; ranking (CI 0.793) is more reliable than absolute values.
+- **High-pKd bias:** The model under-predicts the strongest binders (pKd > 9.0) even after calibration, because the Davis dataset has few very-high-affinity pairs. A pKd of ~8.5+ reliably indicates strong binding, but the exact magnitude for the strongest binders is under-estimated.
 - **Single dataset:** Trained only on Davis Kinase. Generalization to other target families (GPCRs, proteases) has not been tested.
-- **CPU-only validated:** Full validation was done on CPU (2 cores, 27 epochs). GPU checkpoint was lost from Colab session — retraining in progress.
 - **No adversarial robustness testing:** Predictions have not been validated against adversarial perturbations.
 
 ## License

@@ -90,11 +90,12 @@ KNOWN_INTERACTIONS = [
 
 
 def classify_binding(pkd):
-    if pkd < 5.5:
+    # pKd = -log10(Kd in M). HIGHER pKd = STRONGER binding.
+    if pkd >= 8.5:
         return "Strong Binder", "#2ecc71"
-    elif pkd < 7.0:
+    elif pkd >= 7.0:
         return "Moderate Binder", "#f1c40f"
-    elif pkd < 8.5:
+    elif pkd >= 5.5:
         return "Weak Binder", "#e67e22"
     else:
         return "Non-binder", "#e74c3c"
@@ -109,10 +110,10 @@ def create_gauge(value, title="Binding Affinity (pKd)"):
             "axis": {"range": [4, 11], "tickwidth": 1},
             "bar": {"color": "#1f77b4"},
             "steps": [
-                {"range": [4, 5.5], "color": "#2ecc71"},
-                {"range": [5.5, 7], "color": "#f1c40f"},
-                {"range": [7, 8.5], "color": "#e67e22"},
-                {"range": [8.5, 11], "color": "#e74c3c"},
+                {"range": [4, 5.5], "color": "#e74c3c"},
+                {"range": [5.5, 7], "color": "#e67e22"},
+                {"range": [7, 8.5], "color": "#f1c40f"},
+                {"range": [8.5, 11], "color": "#2ecc71"},
             ],
             "threshold": {
                 "line": {"color": "red", "width": 4},
@@ -207,14 +208,14 @@ def render_predict_tab():
         st.plotly_chart(fig, use_container_width=True)
 
         kd_nM = 10 ** (9 - pkd)
-        if pkd < 5.5:
-            st.success(f"Strong binding! ~{kd_nM:.0f} nM. High affinity drug-target interaction.")
-        elif pkd < 7.0:
-            st.warning(f"Moderate binding. ~{kd_nM:.0f} nM. Promising candidate.")
-        elif pkd < 8.5:
-            st.info(f"Weak binding. ~{kd_nM:.0f} nM. May need optimization.")
+        if pkd >= 8.5:
+            st.success(f"Strong binding! ~{kd_nM:.2f} nM. High affinity drug-target interaction.")
+        elif pkd >= 7.0:
+            st.warning(f"Moderate binding. ~{kd_nM:.2f} nM. Promising candidate.")
+        elif pkd >= 5.5:
+            st.info(f"Weak binding. ~{kd_nM:.2f} nM. May need optimization.")
         else:
-            st.error(f"Poor binding. ~{kd_nM:.0f} nM. Consider alternative scaffolds.")
+            st.error(f"Poor binding. ~{kd_nM:.2f} nM. Consider alternative scaffolds.")
 
         st.caption("For full GNN predictions on custom molecules, run the app locally.")
 
