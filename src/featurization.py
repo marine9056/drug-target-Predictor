@@ -237,6 +237,26 @@ class ProteinFeaturizer:
             encoding.append(21)  # Padding token
         
         return np.array(encoding, dtype=np.int64)
+
+    def count_valid_residues(self, sequence: str) -> dict:
+        """
+        Report how many characters in the raw input are valid amino acids,
+        so callers can warn the user when most of their input was discarded.
+
+        Args:
+            sequence: Raw, unfiltered sequence string as typed by the user
+
+        Returns:
+            Dict with raw_length, valid_length, and the filtered sequence itself
+        """
+        raw_length = len(sequence)
+        cleaned = sequence.upper().strip()
+        valid_sequence = ''.join(c for c in cleaned if c in AMINO_ACIDS)
+        return {
+            "raw_length": raw_length,
+            "valid_length": len(valid_sequence),
+            "valid_sequence": valid_sequence,
+        }
     
     def sequence_to_onehot(self, sequence: str) -> np.ndarray:
         """

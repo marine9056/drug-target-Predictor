@@ -198,7 +198,24 @@ def main():
             height=150
         )
         if protein_sequence:
-            st.info(f"Length: {len(protein_sequence)} aa")
+            _pf = ProteinFeaturizer()
+            residue_check = _pf.count_valid_residues(protein_sequence)
+            raw_len = residue_check["raw_length"]
+            valid_len = residue_check["valid_length"]
+
+            if valid_len == raw_len:
+                st.info(f"Length: {valid_len} aa")
+            elif valid_len >= 10:
+                st.warning(
+                    f"{raw_len} characters entered, but only {valid_len} are valid "
+                    f"amino acids. Non-amino-acid characters will be ignored."
+                )
+            else:
+                st.error(
+                    f"Only {valid_len} valid amino acid character(s) found in "
+                    f"{raw_len} characters entered. This does not look like a real "
+                    f"protein sequence -- predictions will not be meaningful."
+                )
 
     st.markdown("---")
     col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
@@ -233,7 +250,7 @@ def main():
         with col_r2:
             st.metric("Binding Strength", binding_label)
         with col_r3:
-            st.metric("Protein Length", f"{len(protein_sequence)} aa")
+            st.metric("Protein Length", f"{ProteinFeaturizer().count_valid_residues(protein_sequence)['valid_length']} aa")
 
         fig = create_gauge(kd_value)
         st.plotly_chart(fig, use_container_width=True)

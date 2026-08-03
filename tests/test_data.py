@@ -146,6 +146,25 @@ class TestProteinFeaturizer:
         assert len(encoding) == 10
         assert all(0 <= e <= 21 for e in encoding)
 
+    def test_count_valid_residues_reports_garbage(self):
+        from src.featurization import ProteinFeaturizer
+
+        featurizer = ProteinFeaturizer()
+        result = featurizer.count_valid_residues("12345 !!! hello world $$$")
+
+        assert result["raw_length"] > result["valid_length"]
+        assert result["valid_length"] == 8
+        assert result["valid_sequence"] == "HELLWRLD"
+
+    def test_count_valid_residues_real_sequence_passes(self):
+        from src.featurization import ProteinFeaturizer
+
+        featurizer = ProteinFeaturizer()
+        seq = "MELLATGPQGASSCVPAAGQHFVVILGQGYGKVYKGEWVADANHLDFRESEQFQAFQEAELMAALGLHPHIVKIFHFYCGDLITMLVFEYCEMGSLDSYLHRKRRGALQDPYLVPTQGICKILSTILSQLKGHNLENPIDNLLDFGCRFEVQSSQSRGQSEVSEEFDEFNQACCSQSFQELWQTEEYGFGG"
+        result = featurizer.count_valid_residues(seq)
+
+        assert result["raw_length"] == result["valid_length"]
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
