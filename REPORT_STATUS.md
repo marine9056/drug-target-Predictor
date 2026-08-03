@@ -12,9 +12,9 @@
 |------|------------------|-----|-------|
 | Architecture | 8/10 | 8.5/10 | 1D-CNN protein encoder, concat fusion |
 | Prediction Accuracy | Unverified | 7.5/10 | Verified CI 0.772 (CPU); GPU 0.846 pending re-verification |
-| Code Quality | 7/10 | 8.5/10 | Fixed rdkit dep, hardened error handling, 28 tests |
+| Code Quality | 7/10 | 8.5/10 | Fixed rdkit dep, hardened error handling, 32 tests |
 | Documentation | 5/10 | 8/10 | README honest, Known Limitations added |
-| Testing | 6/10 | 8/10 | 28 tests passing |
+| Testing | 6/10 | 8/10 | 32 tests passing |
 | Deployment | 2/10 | 6/10 | Dockerfile fixed, not yet deployed to HF Spaces |
 | **Overall** | **5.5/10** | **~7.5/10** | Needs GPU retrain + HF deployment |
 
@@ -85,7 +85,7 @@ fusion: concat
 | 4 | Retrain with 1D-CNN protein encoder | DONE |
 | 5 | Compare fusion methods | DONE |
 | 6 | Delete dead requirements-full.txt | DONE |
-| 7 | Add tests for featurization + model | DONE (28 tests) |
+| 7 | Add tests for featurization + model | DONE (32 tests) |
 | 8 | Harden data_loader.py error handling | DONE |
 | 9 | Add GitHub Actions CI | DONE |
 | 10 | Retrain concat to convergence on GPU | DONE (CI 0.793, epoch 33) |

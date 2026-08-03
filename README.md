@@ -115,7 +115,7 @@ drug-target-predictor/
 │   └── kaggle_train.ipynb   # GPU training notebook (Colab/Kaggle)
 ├── .github/workflows/
 │   └── tests.yml            # CI: pytest on every push
-├── tests/                   # Unit tests (28 tests, all passing)
+├── tests/                   # Unit tests (32 tests, all passing)
 ├── train_gpu.py             # Standalone GPU training script
 ├── Dockerfile               # Container config for deployment
 ├── pyproject.toml           # Package configuration
