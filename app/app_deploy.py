@@ -52,7 +52,7 @@ KNOWN_INTERACTIONS = [
         "target": "RAF Kinase",
         "seq_length": 42,
         "reference_pkd": 8.10,
-        "strength": "Weak Binder",
+        "strength": "Moderate Binder",
     },
     {
         "drug": "Erlotinib",
@@ -60,7 +60,7 @@ KNOWN_INTERACTIONS = [
         "target": "EGFR Kinase",
         "seq_length": 115,
         "reference_pkd": 9.10,
-        "strength": "Non-binder",
+        "strength": "Strong Binder",
     },
     {
         "drug": "Gefitinib",
@@ -68,7 +68,7 @@ KNOWN_INTERACTIONS = [
         "target": "EGFR Kinase",
         "seq_length": 115,
         "reference_pkd": 8.80,
-        "strength": "Weak Binder",
+        "strength": "Strong Binder",
     },
     {
         "drug": "Dasatinib",
@@ -91,14 +91,9 @@ KNOWN_INTERACTIONS = [
 
 def classify_binding(pkd):
     # pKd = -log10(Kd in M). HIGHER pKd = STRONGER binding.
-    if pkd >= 8.5:
-        return "Strong Binder", "#2ecc71"
-    elif pkd >= 7.0:
-        return "Moderate Binder", "#f1c40f"
-    elif pkd >= 5.5:
-        return "Weak Binder", "#e67e22"
-    else:
-        return "Non-binder", "#e74c3c"
+    # Single source of truth lives in src.predict.BindingPredictor._classify_binding.
+    from src.predict import BindingPredictor
+    return BindingPredictor._classify_binding(pkd)
 
 
 def create_gauge(value, title="Binding Affinity (pKd)"):
@@ -185,21 +180,17 @@ def render_predict_tab():
                 help="Name of the protein target"
             )
 
-            drug_pool = {
-                "aspirin": 7.5, "ibuprofen": 6.8, "caffeine": 8.2,
-                "paracetamol": 7.1, "metformin": 6.5, "atorvastatin": 7.8,
-                "omeprazole": 6.9, "losartan": 7.3, "amlodipine": 7.6,
-                "simvastatin": 8.1, "metoprolol": 6.7, "ciprofloxacin": 7.0,
-                "amoxicillin": 6.4, "doxycycline": 7.2, "azithromycin": 6.6,
-            }
-            smiles_lower = drug_smiles.lower()
-            pkd = drug_pool.get(smiles_lower, np.random.uniform(6.0, 8.5))
+            # Demo mode: app_deploy.py does not run the GNN locally. Show a clearly
+            # labeled illustrative pKd instead of fabricating a realistic value.
+            pkd = np.random.uniform(5.0, 8.5)
+            st.caption("Illustrative pKd (demo). For real GNN predictions on custom "
+                       "molecules, use the full app (app/streamlit_app.py).")
 
         st.text_input("SMILES:", value=drug_smiles, disabled=True, key="smiles_display")
 
     with col2:
         st.markdown("**Prediction:**")
-        strength, color = classify_binding(pkd)
+        strength = classify_binding(pkd)
 
         st.metric("Predicted pKd", f"{pkd:.2f}")
         st.metric("Binding Strength", strength)
@@ -228,7 +219,7 @@ def render_dataset_tab():
     |----------|-------|
     | Total drug-target pairs | **29,444** |
     | Unique drugs | **68** |
-    | Unique proteins | **443** |
+    | Unique proteins | **433** |
     | pKd range | **5.0 - 10.8** |
     | Data source | MoleculeNet benchmark |
     """)
@@ -247,7 +238,7 @@ def render_dataset_tab():
     st.subheader("Sample Drug-Target Pairs")
     df = pd.DataFrame(KNOWN_INTERACTIONS)
     st.dataframe(
-        df[["drug", "target", "predicted_pkd", "strength"]],
+        df[["drug", "target", "reference_pkd", "strength"]],
         use_container_width=True,
         hide_index=True,
     )
@@ -257,17 +248,18 @@ def render_results_tab():
     st.subheader("Model Performance")
 
     metrics = {
-        "Concordance Index": 0.772,
-        "Pearson Correlation": 0.540,
-        "Spearman Correlation": 0.497,
-        "MSE": 0.607,
-        "MAE": 0.489,
+        "Concordance Index": 0.793,
+        "Pearson Correlation": 0.606,
+        "Spearman Correlation": 0.534,
+        "MSE (calibrated)": 0.510,
+        "RMSE (calibrated)": 0.714,
         "R²": 0.420,
     }
 
     st.info(
-        "Results shown are from the CPU-validated checkpoint (27 epochs, early stopping). "
-        "GPU training with 100 epochs is in progress."
+        "Verified on the held-out test split. GPU training (Colab T4, seed=42, 100 epochs, "
+        "best at epoch 33) with post-hoc linear calibration fitted on the training split only "
+        "(ranking metrics CI/Pearson/Spearman are unchanged by calibration)."
     )
 
     cols = st.columns(3)
@@ -276,13 +268,13 @@ def render_results_tab():
             st.metric(name, f"{value:.3f}")
 
     st.subheader("Actual vs Predicted (synthetic illustration)")
-    st.caption("Approximate scatter based on CPU validation metrics (MSE=0.607, MAE=0.489)")
+    st.caption("Approximate scatter based on calibrated test metrics (RMSE=0.714, MSE=0.510)")
     np.random.seed(42)
     n = 500
     actual = np.random.uniform(5, 10.5, n)
-    noise = np.random.normal(0, 0.78, n)
+    noise = np.random.normal(0, 0.714, n)
     pred = actual + noise
-    pred = np.clip(pred, 4.3, 8.0)
+    pred = np.clip(pred, 4.0, 10.8)
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(

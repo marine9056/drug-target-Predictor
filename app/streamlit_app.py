@@ -107,14 +107,7 @@ def draw_molecule(smiles: str):
 
 def classify_binding(kd_value: float):
     # pKd = -log10(Kd in M). HIGHER pKd = STRONGER binding.
-    if kd_value >= 8.5:
-        return "Strong Binder", "green"
-    elif kd_value >= 7.0:
-        return "Moderate Binder", "orange"
-    elif kd_value >= 5.5:
-        return "Weak Binder", "red"
-    else:
-        return "Non-binder", "darkred"
+    return BindingPredictor._classify_binding(kd_value)
 
 
 def create_gauge(value: float):
@@ -229,7 +222,7 @@ def main():
             return
 
         kd_value = result["kd_value"]
-        binding_label, color = classify_binding(kd_value)
+        binding_label = classify_binding(kd_value)
 
         st.markdown("---")
         st.subheader("Prediction Results")
