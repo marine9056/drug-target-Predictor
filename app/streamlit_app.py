@@ -12,11 +12,9 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import torch
-import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.model import DrugTargetPredictor
 from src.featurization import DrugFeaturizer, ProteinFeaturizer
 from src.predict import BindingPredictor
 
@@ -47,46 +45,9 @@ st.markdown("""
 
 @st.cache_resource
 def load_model():
-    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "configs", "default.yaml")
     checkpoint_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "checkpoints", "best_model.pt")
 
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-
-    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-
-    model = DrugTargetPredictor(
-        drug_encoder_config=config["model"]["drug_encoder"],
-        protein_encoder_config=config["model"]["protein_encoder"],
-        fusion_type=config["model"]["fusion"]["type"],
-        fusion_dim=config["model"]["fusion"]["hidden_dim"]
-    )
-
-    # Handle PyG GATConv version mismatch in both directions:
-    #   older PyG uses a single "lin.weight"
-    #   newer PyG uses split "lin_src.weight" / "lin_dst.weight" (tied to the same value
-    #   for a standard, non-bipartite GATConv, so this conversion is exact, not approximate)
-    state = checkpoint["model_state_dict"]
-    new_state = {}
-    for k, v in state.items():
-        if ".lin_src.weight" in k:
-            base = k.replace(".lin_src.weight", "")
-            new_state[f"{base}.lin.weight"] = v
-        elif ".lin_dst.weight" in k:
-            continue  # duplicate of lin_src, skip
-        elif ".lin.weight" in k and "lin_src" not in k and "lin_dst" not in k:
-            base = k.replace(".lin.weight", "")
-            new_state[f"{base}.lin_src.weight"] = v
-            new_state[f"{base}.lin_dst.weight"] = v
-        else:
-            new_state[k] = v
-    state = new_state
-
-    model.load_state_dict(state)
-    model.eval()
-
-    predictor = BindingPredictor(model, device="cpu")
-    return predictor
+    return BindingPredictor.from_checkpoint(checkpoint_path, device="cpu")
 
 
 def draw_molecule(smiles: str):
