@@ -42,7 +42,6 @@ KNOWN_INTERACTIONS = [
         "drug": "Imatinib (Gleevec)",
         "smiles": "CC1=C(C=C(C=C1)NC(=O)C2=CC=C(C=C2)CN3CCN(CC3)C)NC4=NC=CC(=N4)C5=CN=CC=C5",
         "target": "BCR-ABL Kinase",
-        "seq_length": 268,
         "reference_pkd": 7.37,  # known experimental value from literature
         "strength": "Moderate Binder",
     },
@@ -50,7 +49,6 @@ KNOWN_INTERACTIONS = [
         "drug": "Sorafenib",
         "smiles": "CNC(=O)C1=NC=CC(=C1)OC2=CC=C(C=C2)NC(=O)NC3=CC(=C(C=C3)Cl)C(F)(F)F",
         "target": "RAF Kinase",
-        "seq_length": 42,
         "reference_pkd": 8.10,
         "strength": "Moderate Binder",
     },
@@ -58,7 +56,6 @@ KNOWN_INTERACTIONS = [
         "drug": "Erlotinib",
         "smiles": "COCCOC1=C(C=C2C(=C1)C(=NC=N2)NC3=CC=CC(=C3)C#C)OCCOC",
         "target": "EGFR Kinase",
-        "seq_length": 115,
         "reference_pkd": 9.10,
         "strength": "Strong Binder",
     },
@@ -66,7 +63,6 @@ KNOWN_INTERACTIONS = [
         "drug": "Gefitinib",
         "smiles": "COC1=C(C=C2C(=C1)N=CN=C2NC3=CC(=C(C=C3)F)Cl)OCCCN4CCOCC4",
         "target": "EGFR Kinase",
-        "seq_length": 115,
         "reference_pkd": 8.80,
         "strength": "Strong Binder",
     },
@@ -74,7 +70,6 @@ KNOWN_INTERACTIONS = [
         "drug": "Dasatinib",
         "smiles": "CC1=NC(=CC(=N1)NC2=CC(=CC=C2)C(=O)N)NC3=CC=C(C=C3)OC4=C(C=CC=C4)C(=O)NC5CCNCC5",
         "target": "BCR-ABL Kinase",
-        "seq_length": 268,
         "reference_pkd": 7.32,
         "strength": "Moderate Binder",
     },
@@ -82,7 +77,6 @@ KNOWN_INTERACTIONS = [
         "drug": "Vemurafenib",
         "smiles": "CCCS(=O)(=O)NC1=CC(=C(C=C1)F)C(=O)C2=CNC3=CC=C(C=C32)C4=CC=C(C=C4)Cl",
         "target": "BRAF V600E",
-        "seq_length": 28,
         "reference_pkd": 7.80,
         "strength": "Moderate Binder",
     },
@@ -234,6 +228,8 @@ def render_dataset_tab():
     )
     fig.update_layout(height=350, showlegend=False)
     st.plotly_chart(fig, use_container_width=True)
+    st.caption("Illustrative distribution (beta-sampled). The real Davis pKd distribution is heavily "
+               "skewed toward weak binding (median 5.0); see the full app for dataset details.")
 
     st.subheader("Sample Drug-Target Pairs")
     df = pd.DataFrame(KNOWN_INTERACTIONS)
